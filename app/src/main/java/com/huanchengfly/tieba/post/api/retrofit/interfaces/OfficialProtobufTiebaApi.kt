@@ -5,6 +5,7 @@ import com.huanchengfly.tieba.post.api.models.protos.forumRecommend.ForumRecomme
 import com.huanchengfly.tieba.post.api.models.protos.forumRuleDetail.ForumRuleDetailResponse
 import com.huanchengfly.tieba.post.api.models.protos.frsPage.FrsPageResponse
 import com.huanchengfly.tieba.post.api.models.protos.getBawuInfo.GetBawuInfoResponse
+import com.huanchengfly.tieba.post.api.models.protos.getDislikeList.GetDislikeListResponse
 import com.huanchengfly.tieba.post.api.models.protos.getForumDetail.GetForumDetailResponse
 import com.huanchengfly.tieba.post.api.models.protos.getHistoryForum.GetHistoryForumResponse
 import com.huanchengfly.tieba.post.api.models.protos.getLevelInfo.GetLevelInfoResponse
@@ -127,4 +128,9 @@ interface OfficialProtobufTiebaApi {
     fun getHistoryForumFlow(
         @Body body: MyMultipartBody,
     ): Flow<GetHistoryForumResponse>
+
+    @POST("/c/u/user/getDislikeList?cmd=309692&format=protobuf")
+    fun getDislikeListFlow(
+        @Body body: MyMultipartBody,
+    ): Flow<GetDislikeListResponse>
 }

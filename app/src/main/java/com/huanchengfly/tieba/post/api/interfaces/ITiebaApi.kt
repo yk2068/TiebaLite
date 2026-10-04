@@ -9,6 +9,7 @@ import com.huanchengfly.tieba.post.api.models.protos.forumRecommend.ForumRecomme
 import com.huanchengfly.tieba.post.api.models.protos.forumRuleDetail.ForumRuleDetailResponse
 import com.huanchengfly.tieba.post.api.models.protos.frsPage.FrsPageResponse
 import com.huanchengfly.tieba.post.api.models.protos.getBawuInfo.GetBawuInfoResponse
+import com.huanchengfly.tieba.post.api.models.protos.getDislikeList.GetDislikeListResponse
 import com.huanchengfly.tieba.post.api.models.protos.getForumDetail.GetForumDetailResponse
 import com.huanchengfly.tieba.post.api.models.protos.getHistoryForum.GetHistoryForumResponse
 import com.huanchengfly.tieba.post.api.models.protos.getLevelInfo.GetLevelInfoResponse
@@ -819,6 +820,30 @@ interface ITiebaApi {
      */
     fun submitDislikeFlow(
         dislikeBean: DislikeBean
+    ): Flow<CommonResponse>
+
+    /**
+     * 获取首页推荐中已屏蔽的贴吧列表
+     *
+     * **需登录**
+     *
+     * @param page 页码
+     * @param pageSize 每页数量
+     */
+    fun getDislikeListFlow(
+        page: Int = 1,
+        pageSize: Int = 20
+    ): Flow<GetDislikeListResponse>
+
+    /**
+     * 解除对某个贴吧的屏蔽
+     *
+     * **需登录**
+     *
+     * @param forumId 贴吧 id
+     */
+    fun undislikeForumFlow(
+        forumId: Long
     ): Flow<CommonResponse>
 
     /**

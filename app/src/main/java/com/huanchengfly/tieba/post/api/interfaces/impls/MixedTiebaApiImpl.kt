@@ -63,6 +63,9 @@ import com.huanchengfly.tieba.post.api.models.protos.frsPage.FrsPageResponse
 import com.huanchengfly.tieba.post.api.models.protos.getBawuInfo.GetBawuInfoRequest
 import com.huanchengfly.tieba.post.api.models.protos.getBawuInfo.GetBawuInfoRequestData
 import com.huanchengfly.tieba.post.api.models.protos.getBawuInfo.GetBawuInfoResponse
+import com.huanchengfly.tieba.post.api.models.protos.getDislikeList.GetDislikeListRequest
+import com.huanchengfly.tieba.post.api.models.protos.getDislikeList.GetDislikeListRequestData
+import com.huanchengfly.tieba.post.api.models.protos.getDislikeList.GetDislikeListResponse
 import com.huanchengfly.tieba.post.api.models.protos.getForumDetail.GetForumDetailRequest
 import com.huanchengfly.tieba.post.api.models.protos.getForumDetail.GetForumDetailRequestData
 import com.huanchengfly.tieba.post.api.models.protos.getForumDetail.GetForumDetailResponse
@@ -1473,4 +1476,23 @@ object MixedTiebaApiImpl : ITiebaApi {
             )
         )
     }
+
+    override fun getDislikeListFlow(page: Int, pageSize: Int): Flow<GetDislikeListResponse> {
+        return RetrofitTiebaApi.OFFICIAL_PROTOBUF_TIEBA_V12_API.getDislikeListFlow(
+            buildProtobufRequestBody(
+                GetDislikeListRequest(
+                    GetDislikeListRequestData(
+                        common = buildCommonRequest(clientVersion = ClientVersion.TIEBA_V12),
+                        pn = page,
+                        rn = pageSize,
+                    )
+                ),
+                clientVersion = ClientVersion.TIEBA_V12,
+                needSToken = true
+            )
+        )
+    }
+
+    override fun undislikeForumFlow(forumId: Long): Flow<CommonResponse> =
+        RetrofitTiebaApi.OFFICIAL_TIEBA_API.submitCancelDislikeFlow(forumId)
 }

@@ -7,6 +7,7 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.outlined.DoNotDisturbOn
 import androidx.compose.material.icons.outlined.HideSource
 import androidx.compose.material.icons.outlined.VideocamOff
 import androidx.compose.runtime.Composable
@@ -22,6 +23,7 @@ import com.huanchengfly.tieba.post.ui.common.prefs.PrefsScreen
 import com.huanchengfly.tieba.post.ui.common.prefs.widgets.SwitchPref
 import com.huanchengfly.tieba.post.ui.common.prefs.widgets.TextPref
 import com.huanchengfly.tieba.post.ui.page.destinations.BlockListPageDestination
+import com.huanchengfly.tieba.post.ui.page.destinations.DislikeForumsPageDestination
 import com.huanchengfly.tieba.post.ui.page.settings.LeadingIcon
 import com.huanchengfly.tieba.post.ui.widgets.compose.AvatarIcon
 import com.huanchengfly.tieba.post.ui.widgets.compose.BackNavigationIcon
@@ -74,6 +76,22 @@ fun BlockSettingsPage(
                         }
                     },
                     onClick = { navigator.navigate(BlockListPageDestination) }
+                )
+            }
+            prefsItem {
+                TextPref(
+                    title = stringResource(id = R.string.title_dislike_forums),
+                    summary = stringResource(id = R.string.tip_dislike_forums),
+                    leadingIcon = {
+                        LeadingIcon {
+                            AvatarIcon(
+                                icon = Icons.Outlined.DoNotDisturbOn,
+                                size = Sizes.Small,
+                                contentDescription = null,
+                            )
+                        }
+                    },
+                    onClick = { navigator.navigate(DislikeForumsPageDestination) }
                 )
             }
             prefsItem {
