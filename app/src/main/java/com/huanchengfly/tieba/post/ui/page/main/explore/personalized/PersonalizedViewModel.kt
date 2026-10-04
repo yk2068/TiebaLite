@@ -278,13 +278,12 @@ sealed interface PersonalizedPartialChange : PartialChange<PersonalizedUiState> 
             when (this) {
                 Start -> oldState.copy(isRefreshing = true)
                 is Success -> {
-                    val oldSize = oldState.data.size
-                    val newData = (data + oldState.data).distinctById()
+                    // 刷新时直接以全新的一页替换原有内容，而不是在已有内容上追加有限的几条
                     oldState.copy(
                         isRefreshing = false,
                         currentPage = 1,
-                        data = newData,
-                        refreshPosition = if (oldState.data.isEmpty()) 0 else (newData.size - oldSize),
+                        data = data.toImmutableList(),
+                        refreshPosition = 0,
                     )
                 }
 

@@ -46,9 +46,8 @@ import androidx.compose.material.SnackbarResult
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ChromeReaderMode
-import androidx.compose.material.icons.automirrored.rounded.ChromeReaderMode
 import androidx.compose.material.icons.automirrored.rounded.Sort
+import androidx.compose.material.icons.outlined.ThumbUpOffAlt
 import androidx.compose.material.icons.rounded.AlignVerticalTop
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Delete
@@ -62,6 +61,7 @@ import androidx.compose.material.icons.rounded.RocketLaunch
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.StarBorder
+import androidx.compose.material.icons.rounded.ThumbUp
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
@@ -594,10 +594,6 @@ fun ThreadPage(
         prop1 = ThreadUiState::sortType,
         initial = sortType
     )
-    val isImmersiveMode by viewModel.uiState.collectPartialAsState(
-        prop1 = ThreadUiState::isImmersiveMode,
-        initial = false
-    )
     val latestPosts by viewModel.uiState.collectPartialAsState(
         prop1 = ThreadUiState::latestPosts,
         initial = persistentListOf()
@@ -922,7 +918,6 @@ fun ThreadPage(
             threadAuthorId = author?.get { id } ?: 0L,
             blocked = blocked,
             canDelete = { it.author_id == user.get { id } },
-            immersiveMode = isImmersiveMode,
             isCollected = { it.id == thread?.get { collectMarkPid.toLongOrNull() } },
             onUserClick = {
                 navigator.navigate(UserProfilePageDestination(it.id))
@@ -981,9 +976,7 @@ fun ThreadPage(
                 }
             },
             onMenuCopyClick = {
-                navigator.navigate(
-                    CopyTextDialogPageDestination(it)
-                )
+                TiebaUtil.copyText(context, it)
             },
             onMenuFavoriteClick = {
                 val isPostCollected =
@@ -1169,7 +1162,7 @@ fun ThreadPage(
                         ThreadMenu(
                             isSeeLz = isSeeLz,
                             isCollected = isCollected,
-                            isImmersiveMode = isImmersiveMode,
+                            isSortByAgree = curSortType == ThreadSortType.SORT_TYPE_HOT,
                             isDesc = curSortType == ThreadSortType.SORT_TYPE_DESC,
                             canDelete = { author?.get { id } == user.get { id } },
                             onSeeLzClick = {
@@ -1210,18 +1203,15 @@ fun ThreadPage(
                                 }
                                 closeBottomSheet()
                             },
-                            onImmersiveModeClick = {
-                                if (!isImmersiveMode && !isSeeLz) {
-                                    viewModel.send(
-                                        ThreadUiIntent.LoadFirstPage(
-                                            threadId,
-                                            forumId,
-                                            true,
-                                            curSortType
-                                        )
+                            onSortByAgreeClick = {
+                                viewModel.send(
+                                    ThreadUiIntent.LoadFirstPage(
+                                        threadId,
+                                        forumId,
+                                        isSeeLz,
+                                        if (curSortType != ThreadSortType.SORT_TYPE_HOT) ThreadSortType.SORT_TYPE_HOT else ThreadSortType.SORT_TYPE_DEFAULT
                                     )
-                                }
-                                viewModel.send(ThreadUiIntent.ToggleImmersiveMode(!isImmersiveMode))
+                                )
                                 closeBottomSheet()
                             },
                             onDescClick = {
@@ -1337,7 +1327,6 @@ fun ThreadPage(
                                                     postHolder = firstPost!!,
                                                     contentRenders = firstPostContentRenders,
                                                     canDelete = { it.author_id == user.get { id } },
-                                                    immersiveMode = isImmersiveMode,
                                                     isCollected = {
                                                         it.id == thread?.get { collectMarkPid }
                                                             ?.toLongOrNull()
@@ -1361,9 +1350,7 @@ fun ThreadPage(
                                                         )
                                                     },
                                                     onMenuCopyClick = {
-                                                        navigator.navigate(
-                                                            CopyTextDialogPageDestination(it)
-                                                        )
+                                                        TiebaUtil.copyText(context, it)
                                                     },
                                                     onMenuFavoriteClick = {
                                                         viewModel.send(
@@ -1735,7 +1722,6 @@ fun PostCard(
     threadAuthorId: Long = 0L,
     blocked: Boolean = false,
     canDelete: (Post) -> Boolean = { false },
-    immersiveMode: Boolean = false,
     isCollected: (Post) -> Boolean = { false },
     showSubPosts: Boolean = true,
     onUserClick: (User) -> Unit = {},
@@ -1751,8 +1737,8 @@ fun PostCard(
     val navigator = LocalNavigator.current
     val coroutineScope = rememberCoroutineScope()
     val post = remember(postHolder) { postHolder.get() }
-    val hasPadding = remember(key1 = postHolder, key2 = immersiveMode) {
-        postHolder.get { floor > 1 } && !immersiveMode
+    val hasPadding = remember(key1 = postHolder) {
+        postHolder.get { floor > 1 }
     }
     val paddingModifier = Modifier.padding(start = if (hasPadding) Sizes.Small + 8.dp else 0.dp)
     val author = postHolder.get { author!! }
@@ -1775,7 +1761,7 @@ fun PostCard(
                 )
             }
         },
-        hideBlockedContent = context.appPreferences.hideBlockedContent || immersiveMode,
+        hideBlockedContent = context.appPreferences.hideBlockedContent,
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp, horizontal = 16.dp)
@@ -1845,8 +1831,7 @@ fun PostCard(
         ) {
             Card(
                 header = {
-                    if (!immersiveMode) {
-                        UserHeader(
+                    UserHeader(
                             avatar = {
                                 Avatar(
                                     data = StringUtil.getAvatarUrl(author.portrait),
@@ -1879,13 +1864,12 @@ fun PostCard(
                                 onUserClick(author)
                             }
                         ) {
-                            if (post.floor > 1) {
-                                PostAgreeBtn(
-                                    hasAgreed = hasAgreed,
-                                    agreeNum = agreeNum,
-                                    onClick = onAgree
-                                )
-                            }
+                        if (post.floor > 1) {
+                            PostAgreeBtn(
+                                hasAgreed = hasAgreed,
+                                agreeNum = agreeNum,
+                                onClick = onAgree
+                            )
                         }
                     }
                 },
@@ -1920,7 +1904,7 @@ fun PostCard(
                         contentRenders.fastForEach { it.Render() }
                     }
 
-                    if (showSubPosts && post.sub_post_number > 0 && subPosts.isNotEmpty() && !immersiveMode) {
+                    if (showSubPosts && post.sub_post_number > 0 && subPosts.isNotEmpty()) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -2104,12 +2088,12 @@ fun UserNameText(
 private fun ThreadMenu(
     isSeeLz: Boolean,
     isCollected: Boolean,
-    isImmersiveMode: Boolean,
+    isSortByAgree: Boolean,
     isDesc: Boolean,
     canDelete: () -> Boolean,
     onSeeLzClick: () -> Unit,
     onCollectClick: () -> Unit,
-    onImmersiveModeClick: () -> Unit,
+    onSortByAgreeClick: () -> Unit,
     onDescClick: () -> Unit,
     onJumpPageClick: () -> Unit,
     onShareClick: () -> Unit,
@@ -2183,16 +2167,16 @@ private fun ThreadMenu(
                     text = {
                         TextWithMinWidth(
                             text = stringResource(
-                                id = R.string.title_pure_read
+                                id = R.string.title_sort_by_agree
                             ),
                             minLength = 4
                         )
                     },
-                    checked = isImmersiveMode,
-                    onClick = onImmersiveModeClick,
+                    checked = isSortByAgree,
+                    onClick = onSortByAgreeClick,
                     icon = {
                         Icon(
-                            imageVector = if (isImmersiveMode) Icons.AutoMirrored.Rounded.ChromeReaderMode else Icons.AutoMirrored.Outlined.ChromeReaderMode,
+                            imageVector = if (isSortByAgree) Icons.Rounded.ThumbUp else Icons.Outlined.ThumbUpOffAlt,
                             contentDescription = null
                         )
                     },

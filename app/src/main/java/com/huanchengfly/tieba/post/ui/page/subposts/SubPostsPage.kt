@@ -157,6 +157,7 @@ internal fun SubPostsContent(
 ) {
     val navigator = LocalNavigator.current
     val account = LocalAccount.current
+    val context = LocalContext.current
 
     LazyLoad(key = viewModel, loaded = viewModel.initialized) {
         viewModel.send(
@@ -452,9 +453,7 @@ internal fun SubPostsContent(
                                         )
                                     },
                                     onMenuCopyClick = {
-                                        navigator.navigate(
-                                            CopyTextDialogPageDestination(it)
-                                        )
+                                        TiebaUtil.copyText(context, it)
                                     },
                                 ) {
                                     deleteSubPost = null
@@ -519,10 +518,7 @@ internal fun SubPostsContent(
                                 )
                             },
                             onMenuCopyClick = {
-                                navigator.navigate(
-                                    CopyTextDialogPageDestination(it)
-                                )
-//                                TiebaUtil.copyText(context, it)
+                                TiebaUtil.copyText(context, it)
                             },
                             onMenuDeleteClick = {
                                 deleteSubPost = it.wrapImmutable()

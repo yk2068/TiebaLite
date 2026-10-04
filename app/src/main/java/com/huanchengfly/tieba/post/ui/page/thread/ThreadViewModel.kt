@@ -126,8 +126,6 @@ class ThreadViewModel @Inject constructor() :
                     .flatMapConcat { it.producePartialChange() },
                 intentFlow.filterIsInstance<ThreadUiIntent.LoadMyLatestReply>()
                     .flatMapConcat { it.producePartialChange() },
-                intentFlow.filterIsInstance<ThreadUiIntent.ToggleImmersiveMode>()
-                    .flatMapConcat { it.producePartialChange() },
                 intentFlow.filterIsInstance<ThreadUiIntent.AddFavorite>()
                     .flatMapConcat { it.producePartialChange() },
                 intentFlow.filterIsInstance<ThreadUiIntent.RemoveFavorite>()
@@ -359,9 +357,6 @@ class ThreadViewModel @Inject constructor() :
                 .onStart { emit(ThreadPartialChange.LoadMyLatestReply.Start) }
                 .catch { emit(ThreadPartialChange.LoadMyLatestReply.Failure(it)) }
 
-        fun ThreadUiIntent.ToggleImmersiveMode.producePartialChange(): Flow<ThreadPartialChange.ToggleImmersiveMode> =
-            flowOf(ThreadPartialChange.ToggleImmersiveMode.Success(isImmersiveMode))
-
         fun ThreadUiIntent.AddFavorite.producePartialChange(): Flow<ThreadPartialChange.AddFavorite> =
             TiebaApi.getInstance()
                 .addStoreFlow(threadId, postId)
@@ -556,10 +551,6 @@ sealed interface ThreadUiIntent : UiIntent {
         val isDesc: Boolean = false,
         val curLatestPostFloor: Int = 0,
         val curPostIds: List<Long> = emptyList(),
-    ) : ThreadUiIntent
-
-    data class ToggleImmersiveMode(
-        val isImmersiveMode: Boolean,
     ) : ThreadUiIntent
 
     data class AddFavorite(
@@ -981,16 +972,6 @@ sealed interface ThreadPartialChange : PartialChange<ThreadUiState> {
         ) : LoadMyLatestReply()
     }
 
-    sealed class ToggleImmersiveMode : ThreadPartialChange {
-        override fun reduce(oldState: ThreadUiState): ThreadUiState = when (this) {
-            is Success -> oldState.copy(isImmersiveMode = isImmersiveMode)
-        }
-
-        data class Success(
-            val isImmersiveMode: Boolean
-        ) : ToggleImmersiveMode()
-    }
-
     sealed class AddFavorite : ThreadPartialChange {
         override fun reduce(oldState: ThreadUiState): ThreadUiState {
             return when (this) {
@@ -1199,8 +1180,6 @@ data class ThreadUiState(
     val firstPostContentRenders: ImmutableList<PbContentRender> = persistentListOf(),
     val data: ImmutableList<PostItemData> = persistentListOf(),
     val latestPosts: ImmutableList<PostItemData> = persistentListOf(),
-
-    val isImmersiveMode: Boolean = false,
 ) : UiState
 
 sealed interface ThreadUiEvent : UiEvent {

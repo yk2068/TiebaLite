@@ -165,9 +165,6 @@ class PhotoViewActivity : BaseComposeActivityWithParcelable<PhotoViewData>() {
                         ViewPhoto(
                             imageUri = item.originUrl,
                             modifier = Modifier.fillMaxSize(),
-                            onTap = {
-                                finish()
-                            },
                         )
                     }
                     Box(
