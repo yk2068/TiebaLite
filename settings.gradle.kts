@@ -1,7 +1,9 @@
 pluginManagement {
     repositories {
         gradlePluginPortal()
-        google()
+        // google() is unreachable behind the local proxy (502) and would abort resolution
+        maven("https://maven.aliyun.com/repository/google")
+        maven("https://repo.huaweicloud.com/repository/maven/")
         mavenCentral()
         maven("https://maven.aliyun.com/repository/central")
         maven("https://maven.aliyun.com/repository/jcenter")

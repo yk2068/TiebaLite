@@ -86,6 +86,11 @@ android {
             multiDexEnabled = true
         }
     }
+    // 本地构建 lite(release) 包时跳过 lint 校验，避免在无代理/离线环境下因下载 lint-gradle 失败
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
+    }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.8"
     }

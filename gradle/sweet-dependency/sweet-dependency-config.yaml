@@ -21,7 +21,7 @@ preferences:
 repositories:
   gradle-plugin-portal:
     scope: PLUGINS
-  google:
+  # google: unreachable behind the local proxy (502) and aborts resolution
   maven-central:
   # 阿里云 Google 存储库镜像
   aliyun-google-mirror:
