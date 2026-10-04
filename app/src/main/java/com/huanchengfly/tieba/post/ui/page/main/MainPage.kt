@@ -116,83 +116,110 @@ fun MainPage(
         }
     }
 
+    val hideNavHome by rememberPreferenceAsState(
+        key = booleanPreferencesKey("hideNavHome"),
+        defaultValue = LocalContext.current.appPreferences.hideNavHome
+    )
     val hideExplore by rememberPreferenceAsState(
         key = booleanPreferencesKey("hideExplore"),
         defaultValue = LocalContext.current.appPreferences.hideExplore
     )
-    val pageCount by remember {
+    val hideNavMessage by rememberPreferenceAsState(
+        key = booleanPreferencesKey("hideNavMessage"),
+        defaultValue = LocalContext.current.appPreferences.hideNavMessage
+    )
+    val hideNavUser by rememberPreferenceAsState(
+        key = booleanPreferencesKey("hideNavUser"),
+        defaultValue = LocalContext.current.appPreferences.hideNavUser
+    )
+
+    val coroutineScope = rememberCoroutineScope()
+
+    // 底部导航栏的每个组件都可以单独隐藏；全部隐藏时回退为显示全部，保证页面仍可切换
+    val visibleNavigationIds by remember {
         derivedStateOf {
-            if (hideExplore) 3 else 4
+            listOfNotNull(
+                "home".takeUnless { hideNavHome },
+                "explore".takeUnless { hideExplore },
+                "notification".takeUnless { hideNavMessage },
+                "user".takeUnless { hideNavUser },
+            ).takeIf { it.isNotEmpty() } ?: listOf("home", "explore", "notification", "user")
         }
     }
+    val pageCount = visibleNavigationIds.size
     val pagerState = rememberPagerState { pageCount }
-    LaunchedEffect(hideExplore) {
-        if (pagerState.currentPage == 3 && hideExplore) {
-            pagerState.scrollToPage(2)
+    LaunchedEffect(visibleNavigationIds) {
+        if (pagerState.currentPage > visibleNavigationIds.lastIndex) {
+            pagerState.scrollToPage(visibleNavigationIds.lastIndex)
         }
     }
 
-    val coroutineScope = rememberCoroutineScope()
     val themeColors = ExtendedTheme.colors
     val navigationItems by remember {
         derivedStateOf {
-            listOfNotNull(
-                NavigationItem(
-                    id = "home",
-                    icon = { AnimatedImageVector.animatedVectorResource(id = R.drawable.ic_animated_rounded_inventory_2) },
-                    title = { stringResource(id = R.string.title_main) },
-                    content = {
-                        HomePage(
-                            canOpenExplore = !LocalContext.current.appPreferences.hideExplore
-                        ) {
-                            coroutineScope.launch {
-                                pagerState.scrollToPage(1)
+            visibleNavigationIds.map { destination ->
+                when (destination) {
+                    "explore" -> NavigationItem(
+                        id = destination,
+                        icon = {
+                            AnimatedImageVector.animatedVectorResource(id = R.drawable.ic_animated_toy_fans)
+                        },
+                        title = { stringResource(id = R.string.title_explore) },
+                        content = {
+                            ExplorePage()
+                        }
+                    )
+
+                    "notification" -> NavigationItem(
+                        id = destination,
+                        icon = {
+                            AnimatedImageVector.animatedVectorResource(id = R.drawable.ic_animated_rounded_notifications)
+                        },
+                        title = { stringResource(id = R.string.title_notifications) },
+                        badge = messageCount > 0,
+                        badgeText = "$messageCount",
+                        onClick = {
+                            viewModel.send(MainUiIntent.NewMessage.Clear)
+                        },
+                        content = {
+                            NotificationsPage()
+                        }
+                    )
+
+                    "user" -> NavigationItem(
+                        id = destination,
+                        icon = {
+                            AnimatedImageVector.animatedVectorResource(id = R.drawable.ic_animated_rounded_person)
+                        },
+                        title = { stringResource(id = R.string.title_user) },
+                        content = {
+                            UserPage()
+                        }
+                    )
+
+                    else -> NavigationItem(
+                        id = destination,
+                        icon = { AnimatedImageVector.animatedVectorResource(id = R.drawable.ic_animated_rounded_inventory_2) },
+                        title = { stringResource(id = R.string.title_main) },
+                        content = {
+                            HomePage(
+                                canOpenExplore = !hideExplore
+                            ) {
+                                coroutineScope.launch {
+                                    pagerState.scrollToPage(
+                                        visibleNavigationIds.indexOf("explore").coerceAtLeast(0)
+                                    )
+                                }
                             }
                         }
-                    }
-                ),
-                if (hideExplore) null
-                else NavigationItem(
-                    id = "explore",
-                    icon = {
-                        AnimatedImageVector.animatedVectorResource(id = R.drawable.ic_animated_toy_fans)
-                    },
-                    title = { stringResource(id = R.string.title_explore) },
-                    content = {
-                        ExplorePage()
-                    }
-                ),
-                NavigationItem(
-                    id = "notification",
-                    icon = {
-                        AnimatedImageVector.animatedVectorResource(id = R.drawable.ic_animated_rounded_notifications)
-                    },
-                    title = { stringResource(id = R.string.title_notifications) },
-                    badge = messageCount > 0,
-                    badgeText = "$messageCount",
-                    onClick = {
-                        viewModel.send(MainUiIntent.NewMessage.Clear)
-                    },
-                    content = {
-                        NotificationsPage()
-                    }
-                ),
-                NavigationItem(
-                    id = "user",
-                    icon = {
-                        AnimatedImageVector.animatedVectorResource(id = R.drawable.ic_animated_rounded_person)
-                    },
-                    title = { stringResource(id = R.string.title_user) },
-                    content = {
-                        UserPage()
-                    }
-                ),
-            ).toImmutableList()
+                    )
+                }
+            }.toImmutableList()
         }
     }
     val navigationType by remember {
         derivedStateOf {
-            when (windowWidthSizeClass) {
+            val type = when (windowWidthSizeClass) {
                 WindowWidthSizeClass.Compact -> {
                     MainNavigationType.BOTTOM_NAVIGATION
                 }
@@ -212,6 +239,12 @@ fun MainPage(
                 else -> {
                     MainNavigationType.BOTTOM_NAVIGATION
                 }
+            }
+            // 只剩一个页面时，底部导航栏没有意义，退化为侧边导航栏
+            if (visibleNavigationIds.size <= 1 && type == MainNavigationType.BOTTOM_NAVIGATION) {
+                MainNavigationType.NAVIGATION_RAIL
+            } else {
+                type
             }
         }
     }

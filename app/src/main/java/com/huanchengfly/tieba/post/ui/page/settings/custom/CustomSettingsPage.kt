@@ -13,9 +13,8 @@ import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.Brightness2
 import androidx.compose.material.icons.outlined.BrightnessAuto
 import androidx.compose.material.icons.outlined.ColorLens
-import androidx.compose.material.icons.outlined.Explore
-import androidx.compose.material.icons.outlined.FontDownload
 import androidx.compose.material.icons.outlined.FormatColorFill
+import androidx.compose.material.icons.outlined.FontDownload
 import androidx.compose.material.icons.outlined.Upcoming
 import androidx.compose.material.icons.outlined.ViewAgenda
 import androidx.compose.runtime.Composable
@@ -280,21 +279,6 @@ fun CustomSettingsPage(
                     LeadingIcon {
                         AvatarIcon(
                             icon = Icons.Outlined.ViewAgenda,
-                            size = Sizes.Small,
-                            contentDescription = null,
-                        )
-                    }
-                }
-            }
-            prefsItem {
-                SwitchPref(
-                    key = "hideExplore",
-                    title = stringResource(id = R.string.title_hide_explore),
-                    defaultChecked = false,
-                ) {
-                    LeadingIcon {
-                        AvatarIcon(
-                            icon = Icons.Outlined.Explore,
                             size = Sizes.Small,
                             contentDescription = null,
                         )

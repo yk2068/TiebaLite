@@ -2,6 +2,7 @@ package com.huanchengfly.tieba.post.ui.page.main.explore
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.PagerState
@@ -13,6 +14,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -24,9 +26,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.util.fastForEachIndexed
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import com.huanchengfly.tieba.post.R
 import com.huanchengfly.tieba.post.arch.GlobalEvent
+import com.huanchengfly.tieba.post.rememberPreferenceAsState
 import com.huanchengfly.tieba.post.arch.emitGlobalEvent
 import com.huanchengfly.tieba.post.arch.onGlobalEvent
 import com.huanchengfly.tieba.post.ui.common.theme.compose.ExtendedTheme
@@ -38,6 +43,7 @@ import com.huanchengfly.tieba.post.ui.page.main.explore.personalized.Personalize
 import com.huanchengfly.tieba.post.ui.widgets.compose.ActionItem
 import com.huanchengfly.tieba.post.ui.widgets.compose.LazyLoadHorizontalPager
 import com.huanchengfly.tieba.post.ui.widgets.compose.PagerTabIndicator
+import com.huanchengfly.tieba.post.utils.appPreferences
 import com.huanchengfly.tieba.post.ui.widgets.compose.TabRow
 import com.huanchengfly.tieba.post.ui.widgets.compose.Toolbar
 import com.huanchengfly.tieba.post.ui.widgets.compose.accountNavIconIfCompact
@@ -116,9 +122,18 @@ fun ExplorePage() {
 
     val loggedIn = remember(account) { account != null }
 
-    val pages = remember {
+    val hideConcernTab by rememberPreferenceAsState(
+        key = booleanPreferencesKey("hideConcernTab"),
+        defaultValue = LocalContext.current.appPreferences.hideConcernTab
+    )
+    val hideHotTab by rememberPreferenceAsState(
+        key = booleanPreferencesKey("hideHotTab"),
+        defaultValue = LocalContext.current.appPreferences.hideHotTab
+    )
+
+    val pages = remember(loggedIn, hideConcernTab, hideHotTab) {
         listOfNotNull(
-            if (loggedIn) ExplorePageItem(
+            if (loggedIn && !hideConcernTab) ExplorePageItem(
                 "concern",
                 { TabText(text = stringResource(id = R.string.title_concern), selected = it) },
                 { ConcernPage() }
@@ -128,14 +143,21 @@ fun ExplorePage() {
                 { TabText(text = stringResource(id = R.string.title_personalized), selected = it) },
                 { PersonalizedPage() }
             ),
-            ExplorePageItem(
+            if (hideHotTab) null else ExplorePageItem(
                 "hot",
                 { TabText(text = stringResource(id = R.string.title_hot), selected = it) },
                 { HotPage() }
             ),
         ).toImmutableList()
     }
-    val pagerState = rememberPagerState(initialPage = if (account != null) 1 else 0) { pages.size }
+    val pagerState = rememberPagerState(
+        initialPage = pages.indexOfFirst { it.id == "personalized" }.coerceAtLeast(0)
+    ) { pages.size }
+    LaunchedEffect(pages.size) {
+        if (pagerState.currentPage >= pages.size) {
+            pagerState.scrollToPage(pages.size - 1)
+        }
+    }
     val coroutineScope = rememberCoroutineScope()
 
     onGlobalEvent<GlobalEvent.Refresh>(

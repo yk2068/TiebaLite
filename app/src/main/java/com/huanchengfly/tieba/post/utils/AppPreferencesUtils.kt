@@ -118,6 +118,16 @@ open class AppPreferencesUtils private constructor(ctx: Context) {
 
     var hideExplore by DataStoreDelegates.boolean(defaultValue = false)
 
+    var hideNavHome by DataStoreDelegates.boolean(defaultValue = false)
+
+    var hideNavMessage by DataStoreDelegates.boolean(defaultValue = false)
+
+    var hideNavUser by DataStoreDelegates.boolean(defaultValue = false)
+
+    var hideConcernTab by DataStoreDelegates.boolean(defaultValue = false)
+
+    var hideHotTab by DataStoreDelegates.boolean(defaultValue = false)
+
     var hideForumIntroAndStat by DataStoreDelegates.boolean(defaultValue = false)
 
     var hideMedia by DataStoreDelegates.boolean(defaultValue = false)
