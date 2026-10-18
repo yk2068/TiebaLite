@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -42,6 +43,10 @@ import androidx.compose.ui.unit.sp
 import com.github.panpf.sketch.compose.rememberAsyncImageState
 import com.github.panpf.sketch.request.LoadState
 import com.github.panpf.zoomimage.SketchZoomAsyncImage
+import com.github.panpf.zoomimage.compose.rememberZoomState
+import com.github.panpf.zoomimage.util.IntSizeCompat
+import com.github.panpf.zoomimage.zoom.ContentScaleCompat
+import com.github.panpf.zoomimage.zoom.ScalesCalculator
 import com.google.accompanist.systemuicontroller.SystemUiController
 import com.huanchengfly.tieba.post.R
 import com.huanchengfly.tieba.post.arch.BaseComposeActivityWithParcelable
@@ -54,6 +59,45 @@ import com.huanchengfly.tieba.post.utils.ImageUtil
 import com.huanchengfly.tieba.post.utils.download
 import kotlin.math.roundToInt
 
+/**
+ * 把双击放大的中间档位改成「宽度撑满容器」。
+ *
+ * zoomimage 默认取 max(3 倍, 填满比例, 原图 100%)，大图会直接放大到原始像素，
+ * 远超屏幕宽度，看到的只是一小块。这里改为按宽度撑满计算。
+ *
+ * 横向图片本身已撑满宽度，此时退回默认倍数，避免双击后毫无反应。
+ */
+private class FitWidthScalesCalculator : ScalesCalculator {
+    override fun calculate(
+        containerSize: IntSizeCompat,
+        contentSize: IntSizeCompat,
+        contentOriginSize: IntSizeCompat,
+        contentScale: ContentScaleCompat,
+        minScale: Float,
+        initialScale: Float,
+    ): ScalesCalculator.Result {
+        val fitWidthScale = if (contentSize.width > 0) {
+            containerSize.width.toFloat() / contentSize.width
+        } else {
+            minScale
+        }
+        // 明显大于最小档才作为双击目标，否则说明宽度本来就撑满了。
+        val mediumScale = if (fitWidthScale > minScale * 1.05f) {
+            fitWidthScale
+        } else {
+            maxOf(minScale * DEFAULT_MULTIPLE, initialScale)
+        }
+        return ScalesCalculator.Result(
+            mediumScale = mediumScale,
+            maxScale = mediumScale * DEFAULT_MULTIPLE,
+        )
+    }
+
+    private companion object {
+        const val DEFAULT_MULTIPLE = 3f
+    }
+}
+
 @Composable
 private fun ViewPhoto(
     imageUri: String,
@@ -65,6 +109,19 @@ private fun ViewPhoto(
         contentAlignment = Alignment.Center
     ) {
         val state = rememberAsyncImageState()
+        val zoomState = rememberZoomState()
+        DisposableEffect(zoomState) {
+            val zoomable = zoomState.zoomable
+            val originCalculator = zoomable.scalesCalculator
+            val originThreeStepScale = zoomable.threeStepScale
+            // 三档缩放：最小 → 适应宽度 → 最大
+            zoomable.threeStepScale = true
+            zoomable.scalesCalculator = FitWidthScalesCalculator()
+            onDispose {
+                zoomable.scalesCalculator = originCalculator
+                zoomable.threeStepScale = originThreeStepScale
+            }
+        }
         val progress by remember {
             derivedStateOf {
                 (state.progress?.completedLength?.toFloat() ?: 0f) / (state.progress?.totalLength
@@ -82,6 +139,7 @@ private fun ViewPhoto(
             modifier = Modifier.fillMaxSize(),
             onTap = onTap,
             imageState = state,
+            state = zoomState,
         )
         if (showProgress) {
             Box(
