@@ -695,14 +695,35 @@ fun ThreadPage(
         }
     }
     viewModel.onEvent<ThreadUiEvent.AddFavoriteSuccess> {
-        scaffoldState.snackbarHostState.showSnackbar(
-            context.getString(R.string.message_add_favorite_success, it.floor)
+        // 收藏只能靠菜单点选，误触后没有回头路：给个撤销，别让人再翻一遍菜单
+        val result = scaffoldState.snackbarHostState.showSnackbar(
+            message = context.getString(R.string.message_add_favorite_success, it.floor),
+            actionLabel = context.getString(R.string.button_undo),
+            duration = SnackbarDuration.Long,
         )
+        if (result == SnackbarResult.ActionPerformed) {
+            val fid = forum?.get { id } ?: forumId
+            if (fid != null) {
+                viewModel.send(ThreadUiIntent.RemoveFavorite(threadId, fid, curTbs))
+            }
+        }
     }
     viewModel.onEvent<ThreadUiEvent.RemoveFavoriteSuccess> {
-        scaffoldState.snackbarHostState.showSnackbar(
-            context.getString(R.string.message_remove_favorite_success)
+        val collectFloor = lastVisibilityPost
+        val result = scaffoldState.snackbarHostState.showSnackbar(
+            message = context.getString(R.string.message_remove_favorite_success),
+            actionLabel = context.getString(R.string.button_undo),
+            duration = SnackbarDuration.Long,
         )
+        if (result == SnackbarResult.ActionPerformed && collectFloor != null) {
+            viewModel.send(
+                ThreadUiIntent.AddFavorite(
+                    threadId,
+                    collectFloor.get { id },
+                    collectFloor.get { floor }
+                )
+            )
+        }
     }
 
     onGlobalEvent<GlobalEvent.ReplySuccess>(
@@ -1769,6 +1790,7 @@ fun PostCard(
         LongClickMenu(
             menuState = menuState,
             indication = null,
+            followPressPosition = false,
             onClick = {
                 onReplyClick(post)
             }.takeIf { !context.appPreferences.hideReply },

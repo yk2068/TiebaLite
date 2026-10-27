@@ -114,6 +114,7 @@ fun LongClickMenu(
     menuState: MenuState = rememberMenuState(),
     onClick: (() -> Unit)? = null,
     shape: Shape = RoundedCornerShape(0.dp),
+    followPressPosition: Boolean = true,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     indication: Indication? = LocalIndication.current,
     content: @Composable () -> Unit,
@@ -123,7 +124,13 @@ fun LongClickMenu(
             interactionSource.interactions
                 .filterIsInstance<PressInteraction.Press>()
                 .collect {
-                    menuState.offset = it.pressPosition
+                    menuState.offset = if (followPressPosition) {
+                        it.pressPosition
+                    } else {
+                        // 只跟随横向位置：菜单从内容顶部展开，避免某一项正好压在手指下面，
+                        // 长按后抬手或随手点一下就会误触（楼层菜单的「收藏」就是这么被点出来的）。
+                        Offset(it.pressPosition.x, 0f)
+                    }
                 }
         }
     }
