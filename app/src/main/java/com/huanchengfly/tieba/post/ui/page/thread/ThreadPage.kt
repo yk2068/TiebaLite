@@ -745,48 +745,6 @@ fun ThreadPage(
         )
     }
 
-    val updateCollectMarkDialogState = rememberDialogState()
-    var readFloorBeforeBack by remember {
-        mutableIntStateOf(1)
-    }
-    ConfirmDialog(
-        dialogState = updateCollectMarkDialogState,
-        onConfirm = {
-            coroutineScope.launch {
-                navigator.navigateUp()
-                if (lastVisibilityPostId != 0L) {
-                    TiebaApi.getInstance()
-                        .addStoreFlow(threadId, lastVisibilityPostId)
-                        .catch {
-                            context.toastShort(
-                                R.string.message_update_collect_mark_failed,
-                                it.getErrorMessage()
-                            )
-                        }
-                        .collect {
-                            context.toastShort(R.string.message_update_collect_mark_success)
-                        }
-                }
-            }
-        },
-        onCancel = {
-            navigator.navigateUp()
-        }
-    ) {
-        Text(text = stringResource(R.string.message_update_collect_mark, readFloorBeforeBack))
-    }
-    MyBackHandler(
-        enabled = isCollected && !bottomSheetState.isVisible,
-        currentScreen = ThreadPageDestination
-    ) {
-        readFloorBeforeBack = lastVisibilityPost?.get { floor } ?: 0
-        if (readFloorBeforeBack != 0) {
-            updateCollectMarkDialogState.show()
-        } else {
-            navigator.navigateUp()
-        }
-    }
-
     val confirmDeleteDialogState = rememberDialogState()
     var deletePost by remember { mutableStateOf<ImmutableHolder<Post>?>(null) }
     ConfirmDialog(
@@ -998,31 +956,6 @@ fun ThreadPage(
             },
             onMenuCopyClick = {
                 TiebaUtil.copyText(context, it)
-            },
-            onMenuFavoriteClick = {
-                val isPostCollected =
-                    it.id == thread?.get { collectMarkPid.toLongOrNull() }
-                val fid = forum?.get { id } ?: forumId
-                val tbs = anti?.get { tbs }
-                if (fid != null) {
-                    if (isPostCollected) {
-                        viewModel.send(
-                            ThreadUiIntent.RemoveFavorite(
-                                threadId = threadId,
-                                forumId = fid,
-                                tbs = tbs
-                            )
-                        )
-                    } else {
-                        viewModel.send(
-                            ThreadUiIntent.AddFavorite(
-                                threadId = threadId,
-                                postId = it.id,
-                                floor = it.floor
-                            )
-                        )
-                    }
-                }
             },
             onMenuDeleteClick = {
                 deletePost = it.wrapImmutable()
@@ -1372,15 +1305,6 @@ fun ThreadPage(
                                                     },
                                                     onMenuCopyClick = {
                                                         TiebaUtil.copyText(context, it)
-                                                    },
-                                                    onMenuFavoriteClick = {
-                                                        viewModel.send(
-                                                            ThreadUiIntent.AddFavorite(
-                                                                threadId,
-                                                                it.id,
-                                                                it.floor
-                                                            )
-                                                        )
                                                     },
                                                 ) {
                                                     deletePost = null
@@ -1751,7 +1675,6 @@ fun PostCard(
     onSubPostReplyClick: ((Post, SubPostList) -> Unit)? = null,
     onOpenSubPosts: (subPostId: Long) -> Unit = {},
     onMenuCopyClick: ((String) -> Unit)? = null,
-    onMenuFavoriteClick: ((Post) -> Unit)? = null,
     onMenuDeleteClick: ((Post) -> Unit)? = null,
 ) {
     val context = LocalContext.current
@@ -1824,20 +1747,6 @@ fun PostCard(
                     }
                 ) {
                     Text(text = stringResource(id = R.string.title_report))
-                }
-                if (onMenuFavoriteClick != null) {
-                    DropdownMenuItem(
-                        onClick = {
-                            onMenuFavoriteClick(post)
-                            menuState.expanded = false
-                        }
-                    ) {
-                        if (isCollected(post)) {
-                            Text(text = stringResource(id = R.string.title_collect_on))
-                        } else {
-                            Text(text = stringResource(id = R.string.title_collect_floor))
-                        }
-                    }
                 }
                 if (canDelete(post) && onMenuDeleteClick != null) {
                     DropdownMenuItem(
