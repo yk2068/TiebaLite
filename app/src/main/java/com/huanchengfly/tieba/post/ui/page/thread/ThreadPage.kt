@@ -77,6 +77,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -105,6 +106,7 @@ import com.huanchengfly.tieba.post.api.models.protos.ThreadInfo
 import com.huanchengfly.tieba.post.api.models.protos.User
 import com.huanchengfly.tieba.post.api.models.protos.bawuType
 import com.huanchengfly.tieba.post.api.models.protos.plainText
+import com.huanchengfly.tieba.post.api.models.protos.renders
 import com.huanchengfly.tieba.post.api.retrofit.exception.getErrorMessage
 import com.huanchengfly.tieba.post.arch.GlobalEvent
 import com.huanchengfly.tieba.post.arch.ImmutableHolder
@@ -118,6 +120,7 @@ import com.huanchengfly.tieba.post.models.database.History
 import com.huanchengfly.tieba.post.toJson
 import com.huanchengfly.tieba.post.toastShort
 import com.huanchengfly.tieba.post.ui.common.PbContentRender
+import com.huanchengfly.tieba.post.ui.common.PicContentRender
 import com.huanchengfly.tieba.post.ui.common.PbContentText
 import com.huanchengfly.tieba.post.ui.common.theme.compose.ExtendedTheme
 import com.huanchengfly.tieba.post.ui.common.theme.compose.invertChipBackground
@@ -133,6 +136,7 @@ import com.huanchengfly.tieba.post.ui.page.destinations.ReplyPageDestination
 import com.huanchengfly.tieba.post.ui.page.destinations.SubPostsSheetPageDestination
 import com.huanchengfly.tieba.post.ui.page.destinations.ThreadPageDestination
 import com.huanchengfly.tieba.post.ui.page.destinations.UserProfilePageDestination
+import com.huanchengfly.tieba.post.ui.utils.getPhotoViewData
 import com.huanchengfly.tieba.post.ui.widgets.compose.Avatar
 import com.huanchengfly.tieba.post.ui.widgets.compose.BackNavigationIcon
 import com.huanchengfly.tieba.post.ui.widgets.compose.BlockTip
@@ -151,6 +155,7 @@ import com.huanchengfly.tieba.post.ui.widgets.compose.LongClickMenu
 import com.huanchengfly.tieba.post.ui.widgets.compose.MyBackHandler
 import com.huanchengfly.tieba.post.ui.widgets.compose.MyLazyColumn
 import com.huanchengfly.tieba.post.ui.widgets.compose.MyScaffold
+import com.huanchengfly.tieba.post.ui.widgets.compose.NetworkImage
 import com.huanchengfly.tieba.post.ui.widgets.compose.OriginThreadCard
 import com.huanchengfly.tieba.post.ui.widgets.compose.PromptDialog
 import com.huanchengfly.tieba.post.ui.widgets.compose.Sizes
@@ -1131,6 +1136,11 @@ fun ThreadPage(
                                 closeBottomSheet()
                             },
                             onCollectClick = {
+                                // 菜单还在滑动时，手指落点上的按钮会被误触发（「收藏」最常中招），
+                                // 只在完全展开后响应
+                                if (bottomSheetState.currentValue != ModalBottomSheetValue.Expanded) {
+                                    return@ThreadMenu
+                                }
                                 if (isCollected) {
                                     val fid = forum?.get { id } ?: forumId
                                     val tbs = anti?.get { tbs }
@@ -1860,6 +1870,7 @@ fun PostCard(
                                     },
                                 ) {
                                     SubPostItem(
+                                        post = post,
                                         subPostList = item.subPost,
                                         subPostContent = item.subPostContent,
                                         modifier = Modifier
@@ -1904,6 +1915,7 @@ fun PostCard(
 
 @Composable
 private fun SubPostItem(
+    post: Post,
     subPostList: ImmutableHolder<SubPostList>,
     subPostContent: AnnotatedString,
     modifier: Modifier = Modifier,
@@ -1915,6 +1927,10 @@ private fun SubPostItem(
     val navigator = LocalNavigator.current
     val coroutineScope = rememberCoroutineScope()
     val menuState = rememberMenuState()
+    // 楼中楼正文只有文字，图片在 content.renders 里，需要单独渲染缩略图
+    val images = remember(subPostList) {
+        subPostList.get { content.renders }.filterIsInstance<PicContentRender>()
+    }
     LongClickMenu(
         menuState = menuState,
         menuContent = {
@@ -1954,22 +1970,67 @@ private fun SubPostItem(
             onOpenSubPosts(subPostList.get { id })
         }
     ) {
-        ProvideTextStyle(value = MaterialTheme.typography.body2.copy(color = ExtendedTheme.colors.text)) {
-            PbContentText(
-                text = subPostContent,
-                modifier = modifier,
-                fontSize = 13.sp,
-                emoticonSize = 0.9f,
-                overflow = TextOverflow.Ellipsis,
-                maxLines = 4,
-                lineSpacing = 0.4.sp,
-                inlineContent = mapOf(
-                    "Lz" to buildChipInlineContent(
-                        stringResource(id = R.string.tip_lz),
-                        backgroundColor = ExtendedTheme.colors.textSecondary.copy(alpha = 0.1f),
-                        color = ExtendedTheme.colors.textSecondary
-                    ),
+        Column {
+            ProvideTextStyle(value = MaterialTheme.typography.body2.copy(color = ExtendedTheme.colors.text)) {
+                PbContentText(
+                    text = subPostContent,
+                    modifier = modifier,
+                    fontSize = 13.sp,
+                    emoticonSize = 0.9f,
+                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 4,
+                    lineSpacing = 0.4.sp,
+                    inlineContent = mapOf(
+                        "Lz" to buildChipInlineContent(
+                            stringResource(id = R.string.tip_lz),
+                            backgroundColor = ExtendedTheme.colors.textSecondary.copy(alpha = 0.1f),
+                            color = ExtendedTheme.colors.textSecondary
+                        ),
+                    )
                 )
+            }
+
+            if (images.isNotEmpty()) {
+                SubPostImages(
+                    post = post,
+                    postId = subPostList.get { id },
+                    images = images,
+                    modifier = modifier.padding(top = 6.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SubPostImages(
+    post: Post,
+    postId: Long,
+    images: List<PicContentRender>,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        images.take(3).forEachIndexed { index, image ->
+            NetworkImage(
+                imageUri = image.picUrl,
+                contentDescription = null,
+                photoViewData = getPhotoViewData(post, postId, images, index),
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(4.dp)),
+                contentScale = ContentScale.Crop,
+            )
+        }
+        if (images.size > 3) {
+            Text(
+                text = "+${images.size - 3}",
+                style = MaterialTheme.typography.caption,
+                fontSize = 12.sp,
+                color = ExtendedTheme.colors.textSecondary,
             )
         }
     }

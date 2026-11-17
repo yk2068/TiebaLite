@@ -6,6 +6,7 @@ import com.huanchengfly.tieba.post.api.models.protos.ThreadInfo
 import com.huanchengfly.tieba.post.models.LoadPicPageData
 import com.huanchengfly.tieba.post.models.PhotoViewData
 import com.huanchengfly.tieba.post.models.PicItem
+import com.huanchengfly.tieba.post.ui.common.PicContentRender
 import com.huanchengfly.tieba.post.utils.ImageUtil
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
@@ -43,6 +44,41 @@ fun getPhotoViewData(
                 postId = post.id
             )
         )
+    )
+}
+
+fun getPhotoViewData(
+    post: Post,
+    postId: Long,
+    images: List<PicContentRender>,
+    index: Int
+): PhotoViewData? {
+    val forum = post.from_forum ?: return null
+    val target = images.getOrNull(index) ?: return null
+    return PhotoViewData(
+        data = LoadPicPageData(
+            forumId = forum.id,
+            forumName = forum.name,
+            threadId = post.tid,
+            postId = postId,
+            objType = "pb",
+            picId = target.picId,
+            picIndex = index + 1,
+            seeLz = false,
+            originUrl = target.originUrl,
+        ),
+        picItems = images.mapIndexed { imageIndex, image ->
+            PicItem(
+                picId = image.picId,
+                picIndex = imageIndex + 1,
+                url = image.picUrl,
+                originUrl = image.originUrl,
+                showOriginBtn = image.showOriginBtn,
+                originSize = image.originSize,
+                postId = postId
+            )
+        }.toImmutableList(),
+        index = index
     )
 }
 
