@@ -81,6 +81,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -1118,116 +1120,126 @@ fun ThreadPage(
                     sheetShape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
                     sheetBackgroundColor = ExtendedTheme.colors.windowBackground,
                     sheetContent = {
-                        ThreadMenu(
-                            isSeeLz = isSeeLz,
-                            isCollected = isCollected,
-                            isSortByAgree = curSortType == ThreadSortType.SORT_TYPE_HOT,
-                            isDesc = curSortType == ThreadSortType.SORT_TYPE_DESC,
-                            canDelete = { author?.get { id } == user.get { id } },
-                            onSeeLzClick = {
-                                viewModel.send(
-                                    ThreadUiIntent.LoadFirstPage(
-                                        threadId,
-                                        forumId,
-                                        !isSeeLz,
-                                        curSortType
+                        // 菜单收起时布局仍会越界落在屏幕底部并被命中（Compose 不对越界子项裁剪触摸区），
+                        // 未完全展开前吞掉全部触摸，避免误触菜单项
+                        Box(
+                            modifier = Modifier.pointerInput(Unit) {
+                                awaitPointerEventScope {
+                                    while (true) {
+                                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                                            if (bottomSheetState.currentValue != ModalBottomSheetValue.Expanded) {
+                                                event.changes.forEach { it.consume() }
+                                            }
+                                        }
+                                    }
+                                }
+                            ) {
+                            ThreadMenu(
+                                isSeeLz = isSeeLz,
+                                isCollected = isCollected,
+                                isSortByAgree = curSortType == ThreadSortType.SORT_TYPE_HOT,
+                                isDesc = curSortType == ThreadSortType.SORT_TYPE_DESC,
+                                canDelete = { author?.get { id } == user.get { id } },
+                                onSeeLzClick = {
+                                    viewModel.send(
+                                        ThreadUiIntent.LoadFirstPage(
+                                            threadId,
+                                            forumId,
+                                            !isSeeLz,
+                                            curSortType
+                                        )
                                     )
-                                )
-                                closeBottomSheet()
-                            },
+                                    closeBottomSheet()
+                                },
                             onCollectClick = {
-                                // 菜单还在滑动时，手指落点上的按钮会被误触发（「收藏」最常中招），
-                                // 只在完全展开后响应
-                                if (bottomSheetState.currentValue != ModalBottomSheetValue.Expanded) {
-                                    return@ThreadMenu
-                                }
                                 if (isCollected) {
-                                    val fid = forum?.get { id } ?: forumId
-                                    val tbs = anti?.get { tbs }
-                                    if (fid != null) {
-                                        viewModel.send(
-                                            ThreadUiIntent.RemoveFavorite(
-                                                threadId,
-                                                fid,
-                                                tbs
+                                        val fid = forum?.get { id } ?: forumId
+                                        val tbs = anti?.get { tbs }
+                                        if (fid != null) {
+                                            viewModel.send(
+                                                ThreadUiIntent.RemoveFavorite(
+                                                    threadId,
+                                                    fid,
+                                                    tbs
+                                                )
                                             )
-                                        )
-                                    }
-                                } else {
-                                    val readItem = lastVisibilityPost
-                                    if (readItem != null) {
-                                        viewModel.send(
-                                            ThreadUiIntent.AddFavorite(
-                                                threadId,
-                                                readItem.get { id },
-                                                readItem.get { floor }
+                                        }
+                                    } else {
+                                        val readItem = lastVisibilityPost
+                                        if (readItem != null) {
+                                            viewModel.send(
+                                                ThreadUiIntent.AddFavorite(
+                                                    threadId,
+                                                    readItem.get { id },
+                                                    readItem.get { floor }
+                                                )
                                             )
-                                        )
+                                        }
                                     }
-                                }
-                                closeBottomSheet()
-                            },
-                            onSortByAgreeClick = {
-                                viewModel.send(
-                                    ThreadUiIntent.LoadFirstPage(
-                                        threadId,
-                                        forumId,
-                                        isSeeLz,
-                                        if (curSortType != ThreadSortType.SORT_TYPE_HOT) ThreadSortType.SORT_TYPE_HOT else ThreadSortType.SORT_TYPE_DEFAULT
+                                    closeBottomSheet()
+                                },
+                                onSortByAgreeClick = {
+                                    viewModel.send(
+                                        ThreadUiIntent.LoadFirstPage(
+                                            threadId,
+                                            forumId,
+                                            isSeeLz,
+                                            if (curSortType != ThreadSortType.SORT_TYPE_HOT) ThreadSortType.SORT_TYPE_HOT else ThreadSortType.SORT_TYPE_DEFAULT
+                                        )
                                     )
-                                )
-                                closeBottomSheet()
-                            },
-                            onDescClick = {
-                                viewModel.send(
-                                    ThreadUiIntent.LoadFirstPage(
-                                        threadId,
-                                        forumId,
-                                        isSeeLz,
-                                        if (curSortType != ThreadSortType.SORT_TYPE_DESC) ThreadSortType.SORT_TYPE_DESC else ThreadSortType.SORT_TYPE_DEFAULT
+                                    closeBottomSheet()
+                                },
+                                onDescClick = {
+                                    viewModel.send(
+                                        ThreadUiIntent.LoadFirstPage(
+                                            threadId,
+                                            forumId,
+                                            isSeeLz,
+                                            if (curSortType != ThreadSortType.SORT_TYPE_DESC) ThreadSortType.SORT_TYPE_DESC else ThreadSortType.SORT_TYPE_DEFAULT
+                                        )
                                     )
-                                )
-                                closeBottomSheet()
-                            },
-                            onJumpPageClick = {
-                                closeBottomSheet()
-                                jumpToPageDialogState.show()
-                            },
-                            onShareClick = {
-                                TiebaUtil.shareText(
-                                    context,
-                                    "https://tieba.baidu.com/p/$threadId",
-                                    threadTitle
-                                )
-                            },
-                            onCopyLinkClick = {
-                                TiebaUtil.copyText(
-                                    context,
-                                    "https://tieba.baidu.com/p/$threadId?see_lz=${isSeeLz.booleanToString()}"
-                                )
-                            },
-                            onReportClick = {
-                                val firstPostId =
-                                    thread?.get { firstPostId }.takeIf { it != 0L }
-                                        ?: firstPost?.get { id }
-                                        ?: 0L
-                                coroutineScope.launch {
-                                    TiebaUtil.reportPost(
+                                    closeBottomSheet()
+                                },
+                                onJumpPageClick = {
+                                    closeBottomSheet()
+                                    jumpToPageDialogState.show()
+                                },
+                                onShareClick = {
+                                    TiebaUtil.shareText(
                                         context,
-                                        navigator,
-                                        firstPostId.toString()
+                                        "https://tieba.baidu.com/p/$threadId",
+                                        threadTitle
                                     )
-                                }
-                            },
-                            onDeleteClick = {
-                                deletePost = null
-                                confirmDeleteDialogState.show()
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 16.dp)
-                                .defaultMinSize(minHeight = 1.dp)
-                        )
+                                },
+                                onCopyLinkClick = {
+                                    TiebaUtil.copyText(
+                                        context,
+                                        "https://tieba.baidu.com/p/$threadId?see_lz=${isSeeLz.booleanToString()}"
+                                    )
+                                },
+                                onReportClick = {
+                                    val firstPostId =
+                                        thread?.get { firstPostId }.takeIf { it != 0L }
+                                            ?: firstPost?.get { id }
+                                            ?: 0L
+                                    coroutineScope.launch {
+                                        TiebaUtil.reportPost(
+                                            context,
+                                            navigator,
+                                            firstPostId.toString()
+                                        )
+                                    }
+                                },
+                                onDeleteClick = {
+                                    deletePost = null
+                                    confirmDeleteDialogState.show()
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 16.dp)
+                                    .defaultMinSize(minHeight = 1.dp)
+                            )
+                        }
                     },
                     scrimColor = Color.Transparent,
                     modifier = Modifier
