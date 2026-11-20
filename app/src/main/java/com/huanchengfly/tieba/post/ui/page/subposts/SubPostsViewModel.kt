@@ -26,6 +26,7 @@ import com.huanchengfly.tieba.post.arch.UiIntent
 import com.huanchengfly.tieba.post.arch.UiState
 import com.huanchengfly.tieba.post.arch.wrapImmutable
 import com.huanchengfly.tieba.post.ui.common.PbContentRender
+import com.huanchengfly.tieba.post.ui.utils.withLocalPhotoViewData
 import com.huanchengfly.tieba.post.utils.BlockManager.shouldBlock
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.ImmutableList
@@ -82,7 +83,7 @@ class SubPostsViewModel @Inject constructor() :
                     val subPosts = response.data_?.subpost_list.orEmpty().map {
                         SubPostItemData(
                             it.wrapImmutable(),
-                            it.content.renders.toImmutableList(),
+                            it.content.renders.withLocalPhotoViewData(it.id),
                         )
                     }.toImmutableList()
                     SubPostsPartialChange.Load.Success(
@@ -90,7 +91,7 @@ class SubPostsViewModel @Inject constructor() :
                         forum.wrapImmutable(),
                         thread.wrapImmutable(),
                         post.wrapImmutable(),
-                        post.contentRenders,
+                        post.contentRenders.withLocalPhotoViewData(post.id),
                         subPosts,
                         page.current_page < page.total_page,
                         page.current_page,
@@ -109,7 +110,7 @@ class SubPostsViewModel @Inject constructor() :
                     val subPosts = response.data_?.subpost_list.orEmpty().map {
                         SubPostItemData(
                             it.wrapImmutable(),
-                            it.content.renders.toImmutableList(),
+                            it.content.renders.withLocalPhotoViewData(it.id),
                         )
                     }.toImmutableList()
                     SubPostsPartialChange.LoadMore.Success(
@@ -381,7 +382,7 @@ data class SubPostItemData(
         subPost: SubPostList,
     ) : this(
         subPost.wrapImmutable(),
-        subPost.content.renders.toImmutableList(),
+        subPost.content.renders.withLocalPhotoViewData(subPost.id),
         subPost.shouldBlock()
     )
 

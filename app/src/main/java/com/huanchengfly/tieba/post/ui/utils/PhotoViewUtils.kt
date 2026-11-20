@@ -6,8 +6,10 @@ import com.huanchengfly.tieba.post.api.models.protos.ThreadInfo
 import com.huanchengfly.tieba.post.models.LoadPicPageData
 import com.huanchengfly.tieba.post.models.PhotoViewData
 import com.huanchengfly.tieba.post.models.PicItem
+import com.huanchengfly.tieba.post.ui.common.PbContentRender
 import com.huanchengfly.tieba.post.ui.common.PicContentRender
 import com.huanchengfly.tieba.post.utils.ImageUtil
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 
@@ -47,32 +49,23 @@ fun getPhotoViewData(
     )
 }
 
-fun getPhotoViewData(
-    post: Post,
-    postId: Long,
+// 楼中楼图片不走 picPage 接口（接口不收录楼中楼图片，且 from_forum 可能为空），
+// 直接用已有图片列表本地浏览
+fun getLocalPhotoViewData(
     images: List<PicContentRender>,
-    index: Int
-): PhotoViewData? {
-    val forum = post.from_forum ?: return null
-    val target = images.getOrNull(index) ?: return null
+    index: Int,
+    postId: Long? = null,
+): PhotoViewData {
     return PhotoViewData(
-        data = LoadPicPageData(
-            forumId = forum.id,
-            forumName = forum.name,
-            threadId = post.tid,
-            postId = postId,
-            objType = "pb",
-            picId = target.picId,
-            picIndex = index + 1,
-            seeLz = false,
-            originUrl = target.originUrl,
-        ),
+        data = null,
         picItems = images.mapIndexed { imageIndex, image ->
+            // 楼中楼图片的 originSrc 常为空，而图片查看器只按 originUrl 加载
+            val originUrl = image.originUrl.ifBlank { image.picUrl }
             PicItem(
-                picId = image.picId,
+                picId = image.picId.ifBlank { ImageUtil.getPicId(originUrl) },
                 picIndex = imageIndex + 1,
-                url = image.picUrl,
-                originUrl = image.originUrl,
+                url = image.picUrl.ifBlank { originUrl },
+                originUrl = originUrl,
                 showOriginBtn = image.showOriginBtn,
                 originSize = image.originSize,
                 postId = postId
@@ -80,6 +73,20 @@ fun getPhotoViewData(
         }.toImmutableList(),
         index = index
     )
+}
+
+fun List<PbContentRender>.withLocalPhotoViewData(postId: Long? = null): ImmutableList<PbContentRender> {
+    val pics = filterIsInstance<PicContentRender>()
+    if (pics.isEmpty() || pics.all { it.photoViewData != null }) return this.toImmutableList()
+    var picIndex = 0
+    return map { render ->
+        if (render is PicContentRender) {
+            val index = picIndex++
+            if (render.photoViewData == null) {
+                render.copy(photoViewData = getLocalPhotoViewData(pics, index, postId))
+            } else render
+        } else render
+    }.toImmutableList()
 }
 
 fun getPhotoViewData(

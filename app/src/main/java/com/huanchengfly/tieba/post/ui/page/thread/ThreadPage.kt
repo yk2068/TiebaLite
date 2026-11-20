@@ -138,7 +138,7 @@ import com.huanchengfly.tieba.post.ui.page.destinations.ReplyPageDestination
 import com.huanchengfly.tieba.post.ui.page.destinations.SubPostsSheetPageDestination
 import com.huanchengfly.tieba.post.ui.page.destinations.ThreadPageDestination
 import com.huanchengfly.tieba.post.ui.page.destinations.UserProfilePageDestination
-import com.huanchengfly.tieba.post.ui.utils.getPhotoViewData
+import com.huanchengfly.tieba.post.ui.utils.getLocalPhotoViewData
 import com.huanchengfly.tieba.post.ui.widgets.compose.Avatar
 import com.huanchengfly.tieba.post.ui.widgets.compose.BackNavigationIcon
 import com.huanchengfly.tieba.post.ui.widgets.compose.BlockTip
@@ -1882,7 +1882,6 @@ fun PostCard(
                                     },
                                 ) {
                                     SubPostItem(
-                                        post = post,
                                         subPostList = item.subPost,
                                         subPostContent = item.subPostContent,
                                         modifier = Modifier
@@ -1927,7 +1926,6 @@ fun PostCard(
 
 @Composable
 private fun SubPostItem(
-    post: Post,
     subPostList: ImmutableHolder<SubPostList>,
     subPostContent: AnnotatedString,
     modifier: Modifier = Modifier,
@@ -2004,7 +2002,6 @@ private fun SubPostItem(
 
             if (images.isNotEmpty()) {
                 SubPostImages(
-                    post = post,
                     postId = subPostList.get { id },
                     images = images,
                     modifier = modifier.padding(top = 6.dp)
@@ -2016,7 +2013,6 @@ private fun SubPostItem(
 
 @Composable
 private fun SubPostImages(
-    post: Post,
     postId: Long,
     images: List<PicContentRender>,
     modifier: Modifier = Modifier,
@@ -2030,7 +2026,7 @@ private fun SubPostImages(
             NetworkImage(
                 imageUri = image.picUrl,
                 contentDescription = null,
-                photoViewData = getPhotoViewData(post, postId, images, index),
+                photoViewData = getLocalPhotoViewData(images, index, postId),
                 modifier = Modifier
                     .size(56.dp)
                     .clip(RoundedCornerShape(4.dp)),

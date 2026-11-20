@@ -1221,11 +1221,11 @@ object MixedTiebaApiImpl : ITiebaApi {
         mark: Int,
         lastPostId: Long?,
     ): Flow<PbPageResponse> {
-        return RetrofitTiebaApi.OFFICIAL_PROTOBUF_TIEBA_V12_API.pbPageFlow(
+        return RetrofitTiebaApi.OFFICIAL_PROTOBUF_TIEBA_V22_API.pbPageFlow(
             buildProtobufRequestBody(
                 PbPageRequest(
                     PbPageRequestData(
-                        common = buildCommonRequest(clientVersion = ClientVersion.TIEBA_V12),
+                        common = buildCommonRequest(clientVersion = ClientVersion.TIEBA_V22),
                         kz = threadId,
                         pid = postId,
                         pn = page,
@@ -1273,7 +1273,7 @@ object MixedTiebaApiImpl : ITiebaApi {
                         with_floor = 1
                     )
                 ),
-                clientVersion = ClientVersion.TIEBA_V12
+                clientVersion = ClientVersion.TIEBA_V22
             )
         )
     }
@@ -1285,11 +1285,11 @@ object MixedTiebaApiImpl : ITiebaApi {
         page: Int,
         subPostId: Long
     ): Flow<PbFloorResponse> {
-        return RetrofitTiebaApi.OFFICIAL_PROTOBUF_TIEBA_V12_API.pbFloorFlow(
+        return RetrofitTiebaApi.OFFICIAL_PROTOBUF_TIEBA_V22_API.pbFloorFlow(
             buildProtobufRequestBody(
                 PbFloorRequest(
                     PbFloorRequestData(
-                        common = buildCommonRequest(clientVersion = ClientVersion.TIEBA_V12),
+                        common = buildCommonRequest(clientVersion = ClientVersion.TIEBA_V22),
                         forum_id = forumId,
                         kz = threadId,
                         pid = postId,
@@ -1302,7 +1302,7 @@ object MixedTiebaApiImpl : ITiebaApi {
                         ori_ugc_type = 0
                     )
                 ),
-                clientVersion = ClientVersion.TIEBA_V12,
+                clientVersion = ClientVersion.TIEBA_V22,
                 needSToken = false
             )
         )

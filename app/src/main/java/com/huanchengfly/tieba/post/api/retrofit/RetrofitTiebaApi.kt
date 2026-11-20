@@ -252,28 +252,11 @@ object RetrofitTiebaApi {
     }
 
     val OFFICIAL_PROTOBUF_TIEBA_V12_API: OfficialProtobufTiebaApi by lazy {
-        createProtobufApi<OfficialProtobufTiebaApi>(
-            "https://tiebac.baidu.com/",
-            CommonHeaderInterceptor(
-                Header.CHARSET to { "UTF-8" },
-                Header.CLIENT_TYPE to { "2" },
-                Header.CLIENT_USER_TOKEN to { AccountUtil.getUid() },
-                Header.COOKIE to {
-                    getCookie(
-                        "ka" to { "open" },
-                        "CUID" to { CuidUtils.getNewCuid() },
-                        "TBBRAND" to { Build.MODEL }
-                    )
-                },
-                Header.CUID to { CuidUtils.getNewCuid() },
-                Header.CUID_GALAXY2 to { CuidUtils.getNewCuid() },
-                Header.CUID_GID to { "" },
-                Header.CUID_GALAXY3 to { UIDUtil.getAid() },
-                Header.USER_AGENT to { getUserAgent("tieba/${ClientVersion.TIEBA_V12.version}") },
-                Header.X_BD_DATA_TYPE to { "protobuf" },
-            ),
-            stParamInterceptor,
-        )
+        createOfficialProtobufApi(ClientVersion.TIEBA_V12)
+    }
+
+    val OFFICIAL_PROTOBUF_TIEBA_V22_API: OfficialProtobufTiebaApi by lazy {
+        createOfficialProtobufApi(ClientVersion.TIEBA_V22)
     }
 
     val OFFICIAL_PROTOBUF_TIEBA_POST_API: OfficialProtobufTiebaApi by lazy {
@@ -386,6 +369,30 @@ object RetrofitTiebaApi {
         }.build())
         .build()
         .create(T::class.java)
+
+    private fun createOfficialProtobufApi(clientVersion: ClientVersion): OfficialProtobufTiebaApi =
+        createProtobufApi<OfficialProtobufTiebaApi>(
+            "https://tiebac.baidu.com/",
+            CommonHeaderInterceptor(
+                Header.CHARSET to { "UTF-8" },
+                Header.CLIENT_TYPE to { "2" },
+                Header.CLIENT_USER_TOKEN to { AccountUtil.getUid() },
+                Header.COOKIE to {
+                    getCookie(
+                        "ka" to { "open" },
+                        "CUID" to { CuidUtils.getNewCuid() },
+                        "TBBRAND" to { Build.MODEL }
+                    )
+                },
+                Header.CUID to { CuidUtils.getNewCuid() },
+                Header.CUID_GALAXY2 to { CuidUtils.getNewCuid() },
+                Header.CUID_GID to { "" },
+                Header.CUID_GALAXY3 to { UIDUtil.getAid() },
+                Header.USER_AGENT to { getUserAgent("tieba/${clientVersion.version}") },
+                Header.X_BD_DATA_TYPE to { "protobuf" },
+            ),
+            stParamInterceptor,
+        )
 
     private inline fun <reified T : Any> createProtobufApi(
         baseUrl: String,
