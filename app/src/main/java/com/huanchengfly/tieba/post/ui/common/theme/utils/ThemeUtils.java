@@ -97,7 +97,7 @@ public class ThemeUtils {
         }
     }
 
-    @SuppressLint("PrivateApi")
+    @SuppressLint({"PrivateApi", "SoonBlockedPrivateApi"})
     private static void refreshView(View view, ExtraRefreshable extraRefreshable) {
         if (view == null) return;
         view.destroyDrawingCache();

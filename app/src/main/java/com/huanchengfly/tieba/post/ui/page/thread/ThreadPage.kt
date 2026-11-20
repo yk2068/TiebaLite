@@ -1127,9 +1127,9 @@ fun ThreadPage(
                                 awaitPointerEventScope {
                                     while (true) {
                                         val event = awaitPointerEvent(PointerEventPass.Initial)
-                                            if (bottomSheetState.currentValue != ModalBottomSheetValue.Expanded) {
-                                                event.changes.forEach { it.consume() }
-                                            }
+                                        if (bottomSheetState.currentValue != ModalBottomSheetValue.Expanded) {
+                                            event.changes.forEach { it.consume() }
+                                        }
                                         }
                                     }
                                 }

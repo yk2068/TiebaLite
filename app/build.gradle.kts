@@ -34,6 +34,16 @@ wire {
     }
 }
 
+// sweet-dependency 对 <no-spec> 别名生成空版本坐标，BOM 无法约束，
+// 解析 androidTest classpath（lintDebug 需要）时失败。按 compose-bom 对应版本补齐。
+configurations.configureEach {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "androidx.compose.ui" && requested.version.isNullOrEmpty()) {
+            useVersion("1.5.1")
+        }
+    }
+}
+
 android {
     buildToolsVersion = "34.0.0"
     compileSdk = 34
@@ -90,6 +100,13 @@ android {
     lint {
         checkReleaseBuilds = false
         abortOnError = false
+        // Dagger 的 Kotlin detector 在分析本项目的接口实现时会 NPE，属 detector 自身缺陷
+        disable += listOf(
+            "JvmStaticProvidesInObjectDetector",
+            "FieldSiteTargetOnQualifierAnnotation",
+            "ModuleCompanionObjects",
+            "ModuleCompanionObjectsNotInModuleParent"
+        )
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.8"
