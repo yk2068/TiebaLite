@@ -13,6 +13,9 @@ data class PhotoViewData(
     val data: LoadPicPageData? = null,
     val picItems: List<PicItem> = persistentListOf(),
     val index: Int = 0,
+    // 图片所在贴，供图片查看器跳回楼层使用；data 为 null 的本地浏览也需要
+    val threadId: Long? = null,
+    val forumId: Long? = null,
 ) : Parcelable
 
 @Immutable

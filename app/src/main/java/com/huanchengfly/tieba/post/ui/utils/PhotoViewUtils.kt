@@ -45,7 +45,9 @@ fun getPhotoViewData(
                 originSize = originSize,
                 postId = post.id
             )
-        )
+        ),
+        threadId = post.tid,
+        forumId = post.from_forum.id,
     )
 }
 
@@ -55,6 +57,8 @@ fun getLocalPhotoViewData(
     images: List<PicContentRender>,
     index: Int,
     postId: Long? = null,
+    threadId: Long? = null,
+    forumId: Long? = null,
 ): PhotoViewData {
     return PhotoViewData(
         data = null,
@@ -71,11 +75,17 @@ fun getLocalPhotoViewData(
                 postId = postId
             )
         }.toImmutableList(),
-        index = index
+        index = index,
+        threadId = threadId,
+        forumId = forumId,
     )
 }
 
-fun List<PbContentRender>.withLocalPhotoViewData(postId: Long? = null): ImmutableList<PbContentRender> {
+fun List<PbContentRender>.withLocalPhotoViewData(
+    postId: Long? = null,
+    threadId: Long? = null,
+    forumId: Long? = null,
+): ImmutableList<PbContentRender> {
     val pics = filterIsInstance<PicContentRender>()
     if (pics.isEmpty() || pics.all { it.photoViewData != null }) return this.toImmutableList()
     var picIndex = 0
@@ -83,7 +93,9 @@ fun List<PbContentRender>.withLocalPhotoViewData(postId: Long? = null): Immutabl
         if (render is PicContentRender) {
             val index = picIndex++
             if (render.photoViewData == null) {
-                render.copy(photoViewData = getLocalPhotoViewData(pics, index, postId))
+                render.copy(
+                    photoViewData = getLocalPhotoViewData(pics, index, postId, threadId, forumId)
+                )
             } else render
         } else render
     }.toImmutableList()
@@ -99,6 +111,35 @@ fun getPhotoViewData(
         forumName = threadInfo.forumName,
         threadId = threadInfo.threadId,
         index = index
+    )
+}
+
+/**
+ * 卡片点图开关开启时使用：直接用贴内携带的全部图片本地浏览，不走 picPage 接口。
+ * objType 为 "index" 时 picPage 只返回部分图，本地列表能完整展示贴内图片。
+ */
+fun getLocalPhotoViewData(
+    medias: List<Media>,
+    forumId: Long,
+    threadId: Long,
+    index: Int
+): PhotoViewData {
+    return PhotoViewData(
+        data = null,
+        picItems = medias.mapIndexed { mediaIndex, media ->
+            PicItem(
+                picId = ImageUtil.getPicId(media.originPic),
+                picIndex = mediaIndex + 1,
+                url = media.bigPic,
+                originUrl = media.originPic,
+                showOriginBtn = media.showOriginalBtn == 1,
+                originSize = media.originSize,
+                postId = media.postId
+            )
+        }.toImmutableList(),
+        index = index,
+        threadId = threadId,
+        forumId = forumId,
     )
 }
 
@@ -133,6 +174,8 @@ fun getPhotoViewData(
                 postId = mediaItem.postId
             )
         }.toImmutableList(),
-        index = index
+        index = index,
+        threadId = threadId,
+        forumId = forumId,
     )
 }

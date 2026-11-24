@@ -84,6 +84,7 @@ import com.huanchengfly.tieba.post.goToActivity
 import com.huanchengfly.tieba.post.ui.common.theme.compose.ExtendedTheme
 import com.huanchengfly.tieba.post.ui.common.windowsizeclass.WindowWidthSizeClass
 import com.huanchengfly.tieba.post.ui.page.photoview.PhotoViewActivity
+import com.huanchengfly.tieba.post.ui.utils.getLocalPhotoViewData
 import com.huanchengfly.tieba.post.ui.utils.getPhotoViewData
 import com.huanchengfly.tieba.post.ui.widgets.compose.video.DefaultVideoPlayerController
 import com.huanchengfly.tieba.post.ui.widgets.compose.video.OnFullScreenModeChangedListener
@@ -445,6 +446,25 @@ private fun ThreadMedia(
     val isSinglePhoto = remember(mediaCount) { mediaCount == 1 }
 
     val hideMedia = context.appPreferences.hideMedia
+    val cardImageLoadAll = context.appPreferences.cardImageLoadAll
+
+    // 开关开启时直接本地浏览贴内全部图片，避免 picPage 在 objType=index 下只返回部分图
+    fun buildPhotoViewData(index: Int) = if (cardImageLoadAll) {
+        getLocalPhotoViewData(
+            medias = medias.map { it.get() },
+            forumId = forumId,
+            threadId = threadId,
+            index = index,
+        )
+    } else {
+        getPhotoViewData(
+            medias = medias.map { it.get() },
+            forumId = forumId,
+            forumName = forumName,
+            threadId = threadId,
+            index = index,
+        )
+    }
 
     val windowWidthSizeClass = LocalWindowSizeClass.current.widthSizeClass
     val singleMediaFraction = remember(windowWidthSizeClass) {
@@ -508,15 +528,9 @@ private fun ThreadMedia(
                 }
                 if (hideMedia) {
                     val photoViewData = remember(
-                        medias, forumId, forumName, threadId
+                        medias, forumId, forumName, threadId, cardImageLoadAll
                     ) {
-                        getPhotoViewData(
-                            medias = medias.map { it.get() },
-                            forumId = forumId,
-                            forumName = forumName,
-                            threadId = threadId,
-                            index = 0
-                        )
+                        buildPhotoViewData(index = 0)
                     }
                     MediaPlaceholder(
                         icon = {
@@ -552,15 +566,9 @@ private fun ThreadMedia(
                         ) {
                             showMedias.fastForEachIndexed { index, media ->
                                 val photoViewData = remember(
-                                    index, medias, forumId, forumName, threadId
+                                    index, medias, forumId, forumName, threadId, cardImageLoadAll
                                 ) {
-                                    getPhotoViewData(
-                                        medias = medias.map { it.get() },
-                                        forumId = forumId,
-                                        forumName = forumName,
-                                        threadId = threadId,
-                                        index = index
-                                    )
+                                    buildPhotoViewData(index = index)
                                 }
                                 NetworkImage(
                                     imageUri = remember(media) { media.url },

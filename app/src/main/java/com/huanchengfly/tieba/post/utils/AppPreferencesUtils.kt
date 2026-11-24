@@ -132,6 +132,9 @@ open class AppPreferencesUtils private constructor(ctx: Context) {
 
     var hideMedia by DataStoreDelegates.boolean(defaultValue = false)
 
+    // 卡片点图加载贴内全部图片列表（本地浏览，不走 picPage 分页）
+    var cardImageLoadAll by DataStoreDelegates.boolean(defaultValue = false)
+
     var hideReply by DataStoreDelegates.boolean(defaultValue = false)
 
     var homePageScroll by DataStoreDelegates.boolean(defaultValue = false)

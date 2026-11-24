@@ -97,6 +97,23 @@ fun HabitSettingsPage(
                 )
             }
             prefsItem {
+                SwitchPref(
+                    key = "cardImageLoadAll",
+                    title = stringResource(id = R.string.title_card_image_load_all),
+                    summary = stringResource(id = R.string.tip_card_image_load_all),
+                    defaultChecked = false,
+                    leadingIcon = {
+                        LeadingIcon {
+                            AvatarIcon(
+                                icon = Icons.Outlined.ImageSearch,
+                                size = Sizes.Small,
+                                contentDescription = null,
+                            )
+                        }
+                    },
+                )
+            }
+            prefsItem {
                 ListPref(
                     key = "pic_watermark_type",
                     title = stringResource(id = R.string.title_settings_image_watermark),
