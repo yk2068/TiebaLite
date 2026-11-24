@@ -23,6 +23,7 @@ import androidx.compose.material.IconButton
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Comment
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.runtime.Composable
@@ -256,6 +257,31 @@ class PhotoViewActivity : BaseComposeActivityWithParcelable<PhotoViewData>() {
                                     )
                                 } else {
                                     Spacer(modifier = Modifier.weight(1f))
+                                }
+                                val currentPostId = items[index].postId
+                                if (data.threadId != null && currentPostId != null) {
+                                    IconButton(onClick = {
+                                        val uri = Uri.parse("tblite://jump-to-post").buildUpon()
+                                            .appendQueryParameter("threadId", data.threadId.toString())
+                                            .appendQueryParameter("postId", currentPostId.toString())
+                                            .apply {
+                                                data.forumId?.let {
+                                                    appendQueryParameter("forumId", it.toString())
+                                                }
+                                            }
+                                            .build()
+                                        startActivity(
+                                            Intent(Intent.ACTION_VIEW, uri)
+                                                .setPackage(packageName)
+                                                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                                        )
+                                        finish()
+                                    }) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Comment,
+                                            contentDescription = stringResource(id = R.string.desc_jump_to_post)
+                                        )
+                                    }
                                 }
                                 IconButton(onClick = {
                                     toastShort(R.string.toast_preparing_share_pic)

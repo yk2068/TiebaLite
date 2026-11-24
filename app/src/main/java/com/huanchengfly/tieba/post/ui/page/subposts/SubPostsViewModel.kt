@@ -83,7 +83,7 @@ class SubPostsViewModel @Inject constructor() :
                     val subPosts = response.data_?.subpost_list.orEmpty().map {
                         SubPostItemData(
                             it.wrapImmutable(),
-                            it.content.renders.withLocalPhotoViewData(it.id),
+                            it.content.renders.withLocalPhotoViewData(it.id, threadId, forumId),
                         )
                     }.toImmutableList()
                     SubPostsPartialChange.Load.Success(
@@ -91,7 +91,7 @@ class SubPostsViewModel @Inject constructor() :
                         forum.wrapImmutable(),
                         thread.wrapImmutable(),
                         post.wrapImmutable(),
-                        post.contentRenders.withLocalPhotoViewData(post.id),
+                        post.contentRenders.withLocalPhotoViewData(post.id, threadId, forumId),
                         subPosts,
                         page.current_page < page.total_page,
                         page.current_page,
@@ -110,7 +110,7 @@ class SubPostsViewModel @Inject constructor() :
                     val subPosts = response.data_?.subpost_list.orEmpty().map {
                         SubPostItemData(
                             it.wrapImmutable(),
-                            it.content.renders.withLocalPhotoViewData(it.id),
+                            it.content.renders.withLocalPhotoViewData(it.id, threadId, forumId),
                         )
                     }.toImmutableList()
                     SubPostsPartialChange.LoadMore.Success(

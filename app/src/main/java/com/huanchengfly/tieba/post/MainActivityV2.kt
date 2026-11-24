@@ -230,6 +230,23 @@ class MainActivityV2 : BaseComposeActivity() {
     }
 
     private fun checkIntent(intent: Intent): Boolean {
+        // 图片查看器跳回所在楼：独立 Activity 无法持有 navigator，经此中转
+        if (intent.data?.scheme == "tblite" && intent.data?.host == "jump-to-post") {
+            val uri = intent.data!!
+            val threadId = uri.getQueryParameter("threadId")?.toLongOrNull()
+            val postId = uri.getQueryParameter("postId")?.toLongOrNull() ?: 0
+            val forumId = uri.getQueryParameter("forumId")?.toLongOrNull()
+            if (threadId != null) {
+                navigate(
+                    ThreadPageDestination(
+                        threadId = threadId,
+                        forumId = forumId,
+                        postId = postId,
+                    )
+                )
+            }
+            return true
+        }
         return if (intent.data?.scheme == "com.baidu.tieba" && intent.data?.host == "unidispatch") {
             val uri = intent.data!!
             when (uri.path.orEmpty().lowercase()) {

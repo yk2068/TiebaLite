@@ -213,7 +213,8 @@ sealed interface PhotoViewPartialChange : PartialChange<PhotoViewUiState> {
                                 picId = item.picId,
                                 originUrl = item.originUrl,
                                 url = if (item.showOriginBtn) item.url else null,
-                                overallIndex = index + 1
+                                overallIndex = index + 1,
+                                postId = item.postId
                             )
                         }.toImmutableList(),
                         hasNext = false,
